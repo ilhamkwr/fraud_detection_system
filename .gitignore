@@ -1,2 +1,12 @@
 
 data/
+*.pyc
+*.pyc
+*.ipynb
+*.pyc
+__pycache__/main.cpython-310.pyc
+cache/cache_db_0.11.db
+*.wal
+*.pyc
+*.pyc
+__pycache__/main.cpython-310.pyc

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import Optional
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
@@ -8,8 +8,12 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import accuracy_score
 import joblib
-
 import os
+import matplotlib.pyplot as plt
+from pandasai.llm.openai import OpenAI
+from pandasai import SmartDataframe
+import io
+from starlette.responses import StreamingResponse, FileResponse
 
 # Load model from file if it exists
 def load_saved_model():
@@ -24,6 +28,7 @@ def load_saved_model():
 # Initialize FastAPI
 app = FastAPI()
 
+# Load saved model (if exists)
 load_saved_model()
 
 # Global variables for storing datasets and models
@@ -135,5 +140,29 @@ async def predict_fraud(transaction: Transaction):
         return {"is_fraud": int(prediction[0])}
     except Exception as e:
         return {"error": str(e)}
+    
 
+class QuestionRequest(BaseModel):
+    question: str
 
+@app.post("/visualize/")
+async def visualize(request: QuestionRequest):
+    question = request.question
+
+    df = pd.read_csv('data/credit_card.csv')
+
+    llm = OpenAI(api_token=os.getenv("OPENAI_API_KEY"))
+    sdf = SmartDataframe(df, config={"llm": llm, "cache": None}) 
+
+    response = sdf.chat(question)
+
+    output_dir = '/home/ilhamkwr/competition/bitfury-engine/exports/charts/'
+    output_file = 'temp_chart.png'
+    output_path = os.path.join(output_dir, output_file)
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    plt.savefig(output_path, format='png')
+    plt.close()
+
+    return FileResponse(output_path, media_type="image/png")
